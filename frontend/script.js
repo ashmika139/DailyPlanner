@@ -4,9 +4,7 @@
    ============================================================ */
 
 // Use same origin when served from backend, fallback to localhost:5000 for file:// access
-const API_BASE = window.location.protocol === 'file:'
-  ? 'http://localhost:5000'
-  : window.location.origin;
+const API_BASE = "https://DailyPlanner-backend.onrender.com";
 
 /* ─── TOKEN HELPERS ─────────────────────────────────────── */
 function getToken() { return localStorage.getItem('planner_token'); }
