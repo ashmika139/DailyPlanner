@@ -9,7 +9,7 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: [
-    "https://daily-planner-lime-tau.vercel.app/"
+    "https://daily-planner.vercel.app"
   ],
   credentials: true
 }));

@@ -4,7 +4,7 @@
    ============================================================ */
 
 // Use same origin when served from backend, fallback to localhost:5000 for file:// access
-const API_BASE = "https://dailyplanner-api.onrender.com";
+const API_BASE = "https://daily-planner-lime-tau.vercel.app/";
 
 /* ─── TOKEN HELPERS ─────────────────────────────────────── */
 function getToken() { return localStorage.getItem('planner_token'); }
