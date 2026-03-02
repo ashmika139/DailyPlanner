@@ -2,52 +2,41 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const path = require('path');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
+/* ================= MIDDLEWARE ================= */
+
 app.use(cors({
   origin: [
-    "https://daily-planner.vercel.app"
+    "https://daily-planner.vercel.app",
+    "http://localhost:3000",
+    "http://localhost:5500"
   ],
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Serve frontend static files
-app.use(express.static(path.join(__dirname, '../frontend')));
+/* ================= USER MODEL ================= */
 
-// API Routes
-app.use('/', require('./routes/auth'));
-app.use('/planner', require('./routes/planner'));
-app.use('/profile', require('./routes/profile'));
-app.use('/', require('./routes/connect'));
-app.use('/ai', require('./routes/ai'));
-
-// Fallback for SPA (serve index.html for unmatched routes)
-app.get('*', (req, res) => {
-  // Only fallback for non-API routes
-  if (!req.path.startsWith('/planner') && !req.path.startsWith('/profile') &&
-    !req.path.startsWith('/ai') && !req.path.startsWith('/users') &&
-    !req.path.startsWith('/messages') && !req.path.startsWith('/comments') &&
-    !req.path.startsWith('/comment') && !req.path.startsWith('/message') &&
-    !req.path.startsWith('/shared') && !req.path.startsWith('/uploads') &&
-    !req.path.startsWith('/register') && !req.path.startsWith('/login')) {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-  }
-});
-const bcrypt = require('bcrypt');
 const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   password: String
 });
-app.post('/api/register', async (req, res) => {
+
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+
+/* ================= AUTH ROUTES ================= */
+
+app.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
@@ -66,13 +55,28 @@ app.post('/api/register', async (req, res) => {
 
     await newUser.save();
 
-    res.json({ message: "User registered successfully" });
+    const token = jwt.sign(
+      { id: newUser._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email
+      }
+    });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
-app.post('/api/login', async (req, res) => {
+
+app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -86,22 +90,43 @@ app.post('/api/login', async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    res.json({ message: "Login successful", user });
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
+    });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
-const User = mongoose.models.User || mongoose.model("User", userSchema);
-// Connect to MongoDB
+
+/* ================= ROOT CHECK ================= */
+
+app.get('/', (req, res) => {
+  res.json({ message: "Planner Backend Running 🚀" });
+});
+
+/* ================= DATABASE ================= */
+
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("✅ Connected to MongoDB");
-  })
+  .then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => {
     console.error("❌ MongoDB connection error:", err.message);
     process.exit(1);
   });
+
+/* ================= START SERVER ================= */
 
 const PORT = process.env.PORT || 5000;
 
