@@ -2,9 +2,11 @@ const connectDB = require('./_lib/db');
 const authMiddleware = require('./_lib/auth');
 const User = require('./_lib/models/User');
 const Message = require('./_lib/models/Message');
+const setCors = require('./_lib/cors');
 
-// POST /api/message – send a direct message
+// POST /api/message
 module.exports = async function handler(req, res) {
+    if (setCors(req, res)) return;
     if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed.' });
     await connectDB();
     const user = authMiddleware(req, res);
@@ -35,6 +37,7 @@ module.exports = async function handler(req, res) {
             }
         });
     } catch (err) {
+        console.error('[/api/message]', err);
         res.status(500).json({ message: 'Server error.', error: err.message });
     }
 };

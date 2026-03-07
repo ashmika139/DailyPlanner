@@ -1,7 +1,6 @@
-const connectDB = require('../../_lib/db');
 const authMiddleware = require('../../_lib/auth');
+const setCors = require('../../_lib/cors');
 
-// Rule-based AI schedule generator
 function generateSchedule(data) {
     const { role, chronotype, studyHours, exercise, goal, suggestions } = data;
 
@@ -82,8 +81,8 @@ function generateSchedule(data) {
 
 // POST /api/ai/generate
 module.exports = async function handler(req, res) {
+    if (setCors(req, res)) return;
     if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed.' });
-    // connectDB not needed here (no DB reads), but auth is still checked
     const user = authMiddleware(req, res);
     if (!user) return;
     try {
@@ -91,9 +90,13 @@ module.exports = async function handler(req, res) {
         if (!role || !chronotype) {
             return res.status(400).json({ message: 'role and chronotype are required.' });
         }
-        const result = generateSchedule({ role, chronotype, studyHours, exercise, goal, suggestions: hasSuggestions ? suggestions : '' });
+        const result = generateSchedule({
+            role, chronotype, studyHours, exercise, goal,
+            suggestions: hasSuggestions ? suggestions : ''
+        });
         res.json({ message: 'Schedule generated.', ...result });
     } catch (err) {
+        console.error('[/api/ai/generate]', err);
         res.status(500).json({ message: 'Server error.', error: err.message });
     }
 };

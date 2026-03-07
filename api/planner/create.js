@@ -1,6 +1,7 @@
 const connectDB = require('../../_lib/db');
 const authMiddleware = require('../../_lib/auth');
 const Planner = require('../../_lib/models/Planner');
+const setCors = require('../../_lib/cors');
 
 const DEFAULT_SCHEDULE = [
     '5:00-6:00', '6:00-7:00', '7:00-8:00', '8:00-9:00', '9:00-10:00',
@@ -10,6 +11,7 @@ const DEFAULT_SCHEDULE = [
 
 // POST /api/planner/create
 module.exports = async function handler(req, res) {
+    if (setCors(req, res)) return;
     if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed.' });
     await connectDB();
     const user = authMiddleware(req, res);
@@ -32,6 +34,7 @@ module.exports = async function handler(req, res) {
         );
         res.status(201).json({ message: 'Planner saved.', planner });
     } catch (err) {
+        console.error('[/api/planner/create]', err);
         res.status(500).json({ message: 'Server error.', error: err.message });
     }
 };

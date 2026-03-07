@@ -4,7 +4,7 @@
    ============================================================ */
 
 // Use same origin when served from backend, fallback to localhost:5000 for file:// access
-const API_BASE = "https://your-backend-name.onrender.com";
+const API_BASE = "/api";
 
 /* ─── TOKEN HELPERS ─────────────────────────────────────── */
 function getToken() { return localStorage.getItem('planner_token'); }

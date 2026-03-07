@@ -19,3 +19,4 @@ npm-debug.log*
 
 # Backend (old structure – kept for reference, not deployed)
 backend/node_modules/
+.env*.local

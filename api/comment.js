@@ -2,9 +2,11 @@ const connectDB = require('./_lib/db');
 const authMiddleware = require('./_lib/auth');
 const Planner = require('./_lib/models/Planner');
 const Comment = require('./_lib/models/Comment');
+const setCors = require('./_lib/cors');
 
-// POST /api/comment – add a comment to a shared planner
+// POST /api/comment
 module.exports = async function handler(req, res) {
+    if (setCors(req, res)) return;
     if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed.' });
     await connectDB();
     const user = authMiddleware(req, res);
@@ -21,6 +23,7 @@ module.exports = async function handler(req, res) {
         const populated = await Comment.findById(comment._id).populate('userId', 'name profileImage');
         res.status(201).json({ message: 'Comment added.', comment: populated });
     } catch (err) {
+        console.error('[/api/comment]', err);
         res.status(500).json({ message: 'Server error.', error: err.message });
     }
 };

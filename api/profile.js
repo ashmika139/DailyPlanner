@@ -2,6 +2,10 @@ const multer = require('multer');
 const connectDB = require('./_lib/db');
 const authMiddleware = require('./_lib/auth');
 const User = require('./_lib/models/User');
+const setCors = require('./_lib/cors');
+
+// CRITICAL: Disable Vercel's automatic body parser so multer can handle multipart
+module.exports.config = { api: { bodyParser: false } };
 
 // Use memory storage – no disk writing needed (serverless compatible)
 const upload = multer({
@@ -25,6 +29,7 @@ function runMiddleware(req, res, fn) {
 
 // GET or PUT /api/profile
 module.exports = async function handler(req, res) {
+    if (setCors(req, res)) return; // handle OPTIONS preflight
     if (!['GET', 'PUT'].includes(req.method)) {
         return res.status(405).json({ message: 'Method not allowed.' });
     }
@@ -60,6 +65,10 @@ module.exports = async function handler(req, res) {
             return res.json({ message: 'Profile updated.', user: updated });
         }
     } catch (err) {
+        console.error('[/api/profile]', err);
         res.status(500).json({ message: 'Server error.', error: err.message });
     }
 };
+
+// Disable Vercel body parser (must be AFTER the function export for CommonJS)
+module.exports.config = { api: { bodyParser: false } };

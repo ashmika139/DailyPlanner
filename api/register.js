@@ -2,8 +2,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const connectDB = require('./_lib/db');
 const User = require('./_lib/models/User');
+const setCors = require('./_lib/cors');
 
 module.exports = async function handler(req, res) {
+    if (setCors(req, res)) return; // handle OPTIONS preflight
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed.' });
     }
@@ -26,6 +28,7 @@ module.exports = async function handler(req, res) {
         );
         res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
     } catch (err) {
+        console.error('[/api/register]', err);
         res.status(500).json({ message: 'Server error.', error: err.message });
     }
 };
