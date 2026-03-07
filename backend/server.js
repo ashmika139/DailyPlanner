@@ -12,7 +12,7 @@ const app = express();
 
 app.use(cors({
   origin: [
-    "https://daily-planner.vercel.app",
+    "daily-planner-lime-tau.vercel.app",
     "http://localhost:3000",
     "http://localhost:5500"
   ],
