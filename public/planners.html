@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planner – Past Planners</title>
+    <meta name="description" content="View your past daily planners and revisit completed plans." />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .share-toggle {
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 20px;
+            padding: 0.25rem 0.8rem;
+            border: 1.5px solid;
+            transition: all 0.2s;
+        }
+
+        .share-toggle.shared {
+            background: #dcfce7;
+            color: #16a34a;
+            border-color: #bbf7d0;
+        }
+
+        .share-toggle.unshared {
+            background: #f3f4f6;
+            color: #6b7280;
+            border-color: #d1d5db;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+        }
+    </style>
+</head>
+
+<body data-protected="true">
+
+    <div id="auth-modal-container"></div>
+
+    <nav class="navbar">
+        <a href="index.html" class="navbar-logo">🗓️ <span>Planner</span></a>
+        <ul class="navbar-nav" id="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="planners.html">Past Planners</a></li>
+            <li><a href="connect.html">Connect</a></li>
+            <li><a href="ai.html">AI Planner</a></li>
+        </ul>
+        <div class="navbar-right">
+            <span class="nav-username" id="nav-username"></span>
+            <button class="btn-logout" id="nav-logout">Logout</button>
+            <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <h1>📚 Past Planners</h1>
+        <p>Review and revisit your previous daily plans</p>
+    </div>
+
+    <div class="container section-pad">
+        <div id="planners-grid" class="planners-grid">
+            <!-- Loaded by JS -->
+        </div>
+    </div>
+
+    <!-- Global modal is injected by script.js automatically -->
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('auth-modal-container').innerHTML = createAuthModalHTML();
+
+        async function loadPlanners() {
+            const grid = document.getElementById('planners-grid');
+            grid.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:2rem;">Loading planners…</p>';
+            try {
+                const planners = await apiRequest('/api/planner/all');
+                if (!planners.length) {
+                    grid.innerHTML = `
+                <div class="empty-state" style="grid-column:1/-1;">
+                  <p style="font-size:3rem;">📭</p>
+                  <p style="margin-top:0.75rem;">No planners yet. <a href="index.html" style="color:var(--primary)">Create your first plan!</a></p>
+                </div>`;
+                    return;
+                }
+                grid.innerHTML = '';
+                planners.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'planner-card';
+                    card.id = `planner-card-${p._id}`;
+                    const preview = p.note
+                        ? p.note.substring(0, 120) + (p.note.length > 120 ? '…' : '')
+                        : (p.schedule?.find(s => s.task)?.task || 'No preview available');
+                    const dateLabel = new Date(p.date + 'T00:00:00').toLocaleDateString('en-US', {
+                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                    });
+                    const isShared = p.shared === true;
+                    card.innerHTML = `
+                <div class="planner-card-date">📅 ${dateLabel}</div>
+                <p class="planner-card-preview">${preview}</p>
+                <div class="card-actions">
+                  <button class="btn btn-primary btn-sm view-btn" data-id="${p._id}">👁 View</button>
+                  <button class="share-toggle ${isShared ? 'shared' : 'unshared'} share-btn"
+                    data-id="${p._id}" data-shared="${isShared}">
+                    ${isShared ? '🌐 Shared' : '🔒 Share'}
+                  </button>
+                  <button class="btn btn-danger btn-sm delete-btn" data-id="${p._id}" style="margin-left:auto">Delete</button>
+                </div>`;
+                    grid.appendChild(card);
+                });
+
+                grid.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.addEventListener('click', () => openPlanner(btn.dataset.id));
+                });
+                grid.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        if (!confirm('Delete this planner?')) return;
+                        try {
+                            await apiRequest(`/api/planner/${btn.dataset.id}`, 'DELETE');
+                            showToast('Planner deleted.', 'success');
+                            loadPlanners();
+                        } catch (e) { showToast(e.message, 'error'); }
+                    });
+                });
+                grid.querySelectorAll('.share-btn').forEach(btn => {
+                    btn.addEventListener('click', () => sharePlanner(btn.dataset.id, btn));
+                });
+            } catch (err) {
+                grid.innerHTML = `<p style="color:#dc2626;text-align:center;padding:2rem;">⚠️ ${err.message}</p>`;
+            }
+        }
+
+        async function sharePlanner(id, btn) {
+            const currentlyShared = btn.dataset.shared === 'true';
+            const newState = !currentlyShared;
+            btn.disabled = true;
+            btn.textContent = '…';
+            try {
+                const result = await apiRequest(`/api/planner/share/${id}`, 'POST', { shared: newState });
+                const updatedShared = result.planner.shared;
+                btn.dataset.shared = String(updatedShared);
+                btn.className = `share-toggle ${updatedShared ? 'shared' : 'unshared'} share-btn`;
+                btn.textContent = updatedShared ? '🌐 Shared' : '🔒 Share';
+                showToast(result.message, 'success');
+            } catch (e) {
+                showToast('Share failed: ' + e.message, 'error');
+                btn.textContent = currentlyShared ? '🌐 Shared' : '🔒 Share';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function onAuthSuccess() { loadPlanners(); }
+
+        if (getToken()) loadPlanners();
+    </script>
+</body>
+
+</html>

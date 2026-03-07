@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planner – AI Planner</title>
+    <meta name="description" content="Let AI generate your perfect daily plan based on your lifestyle and goals." />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .ai-hero {
+            background: linear-gradient(135deg, #0A4FA3 0%, #1a6fd4 60%, #42a5f5 100%);
+            padding: 2.5rem 2rem;
+            color: white;
+            text-align: center;
+        }
+
+        .ai-hero h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+        }
+
+        .ai-hero p {
+            opacity: 0.85;
+            margin-top: 0.5rem;
+        }
+
+        .big-btn-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .big-choice-btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 1rem;
+            border: 2.5px solid rgba(255, 255, 255, 0.35);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.12);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+        }
+
+        .big-choice-btn:hover,
+        .big-choice-btn.selected {
+            background: white;
+            color: var(--primary);
+            border-color: white;
+        }
+
+        .suggestions-box {
+            margin-top: 1rem;
+        }
+
+        .ai-nav-row {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            margin-top: 1.5rem;
+        }
+
+        .preview-schedule-block {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 0.5rem;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--primary-bg);
+            font-size: 0.88rem;
+        }
+
+        .preview-schedule-block .time-label {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .ai-result-section {
+            margin-top: 1rem;
+        }
+
+        .ai-result-section h4 {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 2px solid var(--primary-bg);
+        }
+
+        .tag {
+            display: inline-block;
+            background: var(--primary-bg);
+            color: var(--primary);
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin: 0.2rem;
+        }
+
+        .todo-preview {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0;
+            font-size: 0.88rem;
+            color: var(--text-mid);
+        }
+    </style>
+</head>
+
+<body data-protected="true">
+
+    <div id="auth-modal-container"></div>
+
+    <nav class="navbar">
+        <a href="index.html" class="navbar-logo">🗓️ <span>Planner</span></a>
+        <ul class="navbar-nav" id="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="planners.html">Past Planners</a></li>
+            <li><a href="connect.html">Connect</a></li>
+            <li><a href="ai.html">AI Planner</a></li>
+        </ul>
+        <div class="navbar-right">
+            <span class="nav-username" id="nav-username"></span>
+            <button class="btn-logout" id="nav-logout">Logout</button>
+            <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <!-- AI HERO -->
+    <div class="ai-hero">
+        <h1>🤖 AI Planner</h1>
+        <p>Answer a few questions and get a personalized daily schedule generated for you.</p>
+    </div>
+
+    <div class="ai-layout">
+
+        <!-- Step dots -->
+        <div class="step-indicator" id="step-dots">
+            <div class="step-dot active" id="dot-0"></div>
+            <div class="step-dot" id="dot-1"></div>
+            <div class="step-dot" id="dot-2"></div>
+            <div class="step-dot" id="dot-3"></div>
+        </div>
+
+        <!-- ─── STEP 0: Suggestions ─── -->
+        <div class="ai-step active card" id="step-0">
+            <h2 style="font-size:1.3rem;font-weight:800;margin-bottom:0.5rem">Do you have suggestions for today?</h2>
+            <p style="color:var(--text-mid);font-size:0.9rem;margin-bottom:1.25rem">Tell us specific tasks or events you
+                already have planned, or let AI decide everything.</p>
+            <div class="big-btn-group">
+                <button class="big-choice-btn" id="yes-suggestions" onclick="chooseSuggestions(true)">✍️ Yes, I have
+                    suggestions</button>
+                <button class="big-choice-btn" id="no-suggestions" onclick="chooseSuggestions(false)">✨ No, AI
+                    decides</button>
+            </div>
+            <div class="suggestions-box" id="suggestions-box" style="display:none">
+                <label style="margin-top:1rem">Your suggestions / commitments for today:</label>
+                <textarea id="user-suggestions"
+                    placeholder="e.g. Team meeting at 10am, gym session at 6pm, finish project report…"
+                    style="min-height:100px;margin-top:0.5rem"></textarea>
+            </div>
+            <div class="ai-nav-row">
+                <span></span>
+                <button class="btn btn-primary" onclick="goStep(1)">Next →</button>
+            </div>
+        </div>
+
+        <!-- ─── STEP 1: Role ─── -->
+        <div class="ai-step card" id="step-1">
+            <div class="quiz-question">Are you a student or a working professional?</div>
+            <div class="quiz-options">
+                <button class="quiz-option" data-group="role" data-val="student" onclick="selectOption(this,'role')">🎓
+                    Student</button>
+                <button class="quiz-option" data-group="role" data-val="professional"
+                    onclick="selectOption(this,'role')">💼 Working Professional</button>
+            </div>
+            <div class="ai-nav-row">
+                <button class="btn btn-secondary" onclick="goStep(0)">← Back</button>
+                <button class="btn btn-primary" onclick="goStep(2)">Next →</button>
+            </div>
+        </div>
+
+        <!-- ─── STEP 2: Quiz Part 2 ─── -->
+        <div class="ai-step card" id="step-2">
+            <div class="quiz-question">Are you a morning person or a night owl?</div>
+            <div class="quiz-options">
+                <button class="quiz-option" data-group="chronotype" data-val="morning"
+                    onclick="selectOption(this,'chronotype')">🌅 Morning Person</button>
+                <button class="quiz-option" data-group="chronotype" data-val="night"
+                    onclick="selectOption(this,'chronotype')">🌙 Night Owl</button>
+            </div>
+
+            <div class="quiz-question" style="margin-top:1.5rem">How many hours do you study/work per day?</div>
+            <div class="quiz-options">
+                <button class="quiz-option" data-group="studyHours" data-val="2"
+                    onclick="selectOption(this,'studyHours')">2 hrs</button>
+                <button class="quiz-option" data-group="studyHours" data-val="4"
+                    onclick="selectOption(this,'studyHours')">4 hrs</button>
+                <button class="quiz-option" data-group="studyHours" data-val="6"
+                    onclick="selectOption(this,'studyHours')">6 hrs</button>
+                <button class="quiz-option" data-group="studyHours" data-val="8"
+                    onclick="selectOption(this,'studyHours')">8+ hrs</button>
+            </div>
+
+            <div class="quiz-question" style="margin-top:1.5rem">Do you exercise regularly?</div>
+            <div class="quiz-options">
+                <button class="quiz-option" data-group="exercise" data-val="yes"
+                    onclick="selectOption(this,'exercise')">💪 Yes</button>
+                <button class="quiz-option" data-group="exercise" data-val="no"
+                    onclick="selectOption(this,'exercise')">🛋️ Not really</button>
+            </div>
+
+            <div class="ai-nav-row">
+                <button class="btn btn-secondary" onclick="goStep(1)">← Back</button>
+                <button class="btn btn-primary" onclick="goStep(3)">Next →</button>
+            </div>
+        </div>
+
+        <!-- ─── STEP 3: Goal + Generate ─── -->
+        <div class="ai-step card" id="step-3">
+            <div class="quiz-question">What is your main productivity goal for today?</div>
+            <div class="quiz-options">
+                <button class="quiz-option" data-group="goal" data-val="focus" onclick="selectOption(this,'goal')">🎯
+                    Deep Focus</button>
+                <button class="quiz-option" data-group="goal" data-val="balance" onclick="selectOption(this,'goal')">⚖️
+                    Work-Life Balance</button>
+                <button class="quiz-option" data-group="goal" data-val="health" onclick="selectOption(this,'goal')">🏃
+                    Health &amp; Wellness</button>
+                <button class="quiz-option" data-group="goal" data-val="productivity"
+                    onclick="selectOption(this,'goal')">⚡ Max Productivity</button>
+                <button class="quiz-option" data-group="goal" data-val="learning" onclick="selectOption(this,'goal')">📖
+                    Learning &amp; Growth</button>
+            </div>
+            <div class="ai-nav-row">
+                <button class="btn btn-secondary" onclick="goStep(2)">← Back</button>
+                <button class="btn btn-primary btn-lg" id="generate-btn" onclick="generatePlan()">✨ Generate My
+                    Plan</button>
+            </div>
+        </div>
+
+        <!-- ─── LOADING ─── -->
+        <div class="ai-step card" id="step-loading" style="display:none">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p style="font-weight:600;color:var(--primary)">AI is crafting your perfect day…</p>
+                <p style="font-size:0.85rem;color:var(--text-light)">Analyzing your preferences</p>
+            </div>
+        </div>
+
+        <!-- ─── RESULT ─── -->
+        <div class="ai-step card" id="step-result" style="display:none">
+            <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:1.5rem;color:var(--primary)">🎉 Your AI-Generated
+                Plan</h2>
+
+            <div class="ai-result-section">
+                <h4>⏰ Schedule</h4>
+                <div id="result-schedule"></div>
+            </div>
+
+            <div class="ai-result-section" style="margin-top:1.25rem">
+                <h4>🏆 Top Priorities</h4>
+                <div id="result-priorities"></div>
+            </div>
+
+            <div class="ai-result-section" style="margin-top:1.25rem">
+                <h4>✅ To-Do List</h4>
+                <div id="result-todos"></div>
+            </div>
+
+            <div class="ai-result-section" style="margin-top:1.25rem">
+                <h4>📝 Notes</h4>
+                <p id="result-note" style="font-size:0.88rem;color:var(--text-mid);white-space:pre-line"></p>
+            </div>
+
+            <div class="ai-result-section" style="margin-top:1.25rem">
+                <h4>🌅 For Tomorrow</h4>
+                <p id="result-tomorrow" style="font-size:0.88rem;color:var(--text-mid);white-space:pre-line"></p>
+            </div>
+
+            <div style="display:flex;gap:1rem;margin-top:2rem;flex-wrap:wrap">
+                <button class="btn btn-primary btn-lg" id="use-plan-btn">📋 Use This Plan</button>
+                <button class="btn btn-secondary" onclick="resetAI()">🔄 Generate New Plan</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('auth-modal-container').innerHTML = createAuthModalHTML();
+
+        let stepIndex = 0;
+        let hasSuggestions = false;
+        let generatedPlan = null;
+
+        const answers = { role: '', chronotype: '', studyHours: '4', exercise: 'no', goal: 'productivity' };
+
+        function updateDots(step) {
+            for (let i = 0; i < 4; i++) {
+                const dot = document.getElementById(`dot-${i}`);
+                if (dot) {
+                    dot.classList.toggle('active', i === step);
+                    dot.classList.toggle('done', i < step);
+                }
+            }
+        }
+
+        function goStep(n) {
+            document.getElementById(`step-${stepIndex}`)?.classList.remove('active');
+            stepIndex = n;
+            document.getElementById(`step-${stepIndex}`)?.classList.add('active');
+            updateDots(n);
+        }
+
+        function chooseSuggestions(yes) {
+            hasSuggestions = yes;
+            document.getElementById('yes-suggestions').classList.toggle('selected', yes);
+            document.getElementById('no-suggestions').classList.toggle('selected', !yes);
+            document.getElementById('suggestions-box').style.display = yes ? 'block' : 'none';
+        }
+
+        function selectOption(btn, group) {
+            document.querySelectorAll(`.quiz-option[data-group="${group}"]`).forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            answers[group] = btn.dataset.val;
+        }
+
+        async function generatePlan() {
+            if (!answers.role) { showToast('Please select your role first.', 'error'); goStep(1); return; }
+            if (!answers.chronotype) { showToast('Please select your chronotype.', 'error'); goStep(2); return; }
+
+            document.getElementById(`step-${stepIndex}`).classList.remove('active');
+            document.getElementById('step-loading').style.display = 'block';
+
+            const payload = {
+                ...answers,
+                hasSuggestions,
+                suggestions: hasSuggestions ? document.getElementById('user-suggestions').value : ''
+            };
+
+            try {
+                await new Promise(r => setTimeout(r, 1200));
+                const result = await apiRequest('/api/ai/generate', 'POST', payload);
+                generatedPlan = result;
+
+                document.getElementById('result-schedule').innerHTML = result.schedule
+                    .filter(s => s.task)
+                    .map(s => `<div class="preview-schedule-block"><span class="time-label">${s.time}</span><span>${s.task}</span></div>`)
+                    .join('');
+
+                document.getElementById('result-priorities').innerHTML = (result.priorities || [])
+                    .map(p => `<span class="tag">✦ ${p}</span>`).join('');
+
+                document.getElementById('result-todos').innerHTML = (result.todos || [])
+                    .map(t => `<div class="todo-preview">☐ ${t.text}</div>`).join('');
+
+                document.getElementById('result-note').textContent = result.note || '';
+                document.getElementById('result-tomorrow').textContent = result.tomorrow || '';
+
+                document.getElementById('step-loading').style.display = 'none';
+                document.getElementById('step-result').style.display = 'block';
+
+                for (let i = 0; i < 4; i++) {
+                    const dot = document.getElementById(`dot-${i}`);
+                    if (dot) { dot.classList.remove('active'); dot.classList.add('done'); }
+                }
+            } catch (e) {
+                document.getElementById('step-loading').style.display = 'none';
+                goStep(3);
+                showToast(e.message, 'error');
+            }
+        }
+
+        document.getElementById('use-plan-btn').addEventListener('click', () => {
+            if (!generatedPlan) return;
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const plan = { ...generatedPlan, date: `${yyyy}-${mm}-${dd}` };
+            localStorage.setItem('planner_ai_plan', JSON.stringify(plan));
+            showToast('Plan saved! Redirecting to planner…', 'success');
+            setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+        });
+
+        function resetAI() {
+            hasSuggestions = false;
+            generatedPlan = null;
+            Object.keys(answers).forEach(k => answers[k] = '');
+            answers.studyHours = '4';
+            answers.goal = 'productivity';
+            answers.exercise = 'no';
+            document.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
+            document.getElementById('step-result').style.display = 'none';
+            document.getElementById('step-loading').style.display = 'none';
+            document.getElementById('yes-suggestions').classList.remove('selected');
+            document.getElementById('no-suggestions').classList.remove('selected');
+            document.getElementById('suggestions-box').style.display = 'none';
+            document.getElementById('user-suggestions').value = '';
+            stepIndex = 0;
+            document.getElementById('step-0').classList.add('active');
+            updateDots(0);
+        }
+
+        function onAuthSuccess() { /* nothing extra needed */ }
+    </script>
+</body>
+
+</html>

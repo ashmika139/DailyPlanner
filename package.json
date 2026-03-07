@@ -1,5 +1,14 @@
 {
-  "dependencies": {
-    "bcrypt": "^6.0.0"
-  }
+    "name": "daily-planner",
+    "version": "1.0.0",
+    "description": "AI-powered Daily Planner – Vercel full-stack deployment",
+    "scripts": {
+        "dev": "vercel dev"
+    },
+    "dependencies": {
+        "bcryptjs": "^2.4.3",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.2.3",
+        "multer": "^1.4.5-lts.1"
+    }
 }

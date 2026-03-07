@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planner – Connect</title>
+    <meta name="description" content="Connect with other Planner users – view shared planners, comment, and message." />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .no-msg {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .msg-ts {
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.65);
+            margin-top: 3px;
+        }
+
+        .msg-ts.r {
+            color: var(--text-light);
+        }
+
+        .planner-preview-content {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.88rem;
+            color: var(--text-mid);
+        }
+
+        .comment-form-row {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--primary-bg);
+        }
+
+        .user-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .user-sub {
+            font-size: 0.78rem;
+            color: var(--text-light);
+        }
+
+        .poll-indicator {
+            font-size: 0.72rem;
+            color: var(--text-light);
+            text-align: right;
+            margin-bottom: 4px;
+        }
+
+        .error-banner {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+
+        .share-btn-row {
+            padding: 0.5rem 1.25rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .shared-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #16a34a;
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+        }
+
+        .unshared-tag {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body data-protected="true">
+
+    <div id="auth-modal-container"></div>
+
+    <nav class="navbar">
+        <a href="index.html" class="navbar-logo">🗓️ <span>Planner</span></a>
+        <ul class="navbar-nav" id="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="planners.html">Past Planners</a></li>
+            <li><a href="connect.html">Connect</a></li>
+            <li><a href="ai.html">AI Planner</a></li>
+        </ul>
+        <div class="navbar-right">
+            <span class="nav-username" id="nav-username"></span>
+            <button class="btn-logout" id="nav-logout">Logout</button>
+            <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <h1>🤝 Connect</h1>
+        <p>Discover users, view shared planners, and exchange messages</p>
+    </div>
+
+    <div class="connect-layout">
+
+        <!-- LEFT: User List -->
+        <div>
+            <div class="card" style="margin-bottom:1rem">
+                <div class="card-header">👥 Community</div>
+                <div id="user-list" class="user-list">
+                    <p style="color:var(--text-light);font-size:0.85rem">Loading users…</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER: Shared Planners Feed -->
+        <div>
+            <div
+                style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--primary);margin-bottom:1rem">
+                📢 Shared Planners
+            </div>
+            <div id="shared-feed-error" class="error-banner"></div>
+            <div id="shared-feed" class="feed-section">
+                <p style="color:var(--text-light);text-align:center">Loading feed…</p>
+            </div>
+        </div>
+
+        <!-- RIGHT: Messaging -->
+        <div>
+            <div class="card message-panel">
+                <div class="card-header" id="msg-header">💬 Messages</div>
+                <div id="no-user-msg" class="no-msg">← Select a user to start chatting</div>
+                <div id="message-panel-content" style="display:none;flex-direction:column;flex:1">
+                    <div class="poll-indicator" id="poll-indicator">⬤ Live</div>
+                    <div id="msg-error" class="error-banner"></div>
+                    <div class="message-thread" id="message-thread"></div>
+                    <div class="message-input-row" style="margin-top:0.5rem">
+                        <input type="text" id="msg-input" placeholder="Type a message and press Enter…" />
+                        <button class="btn btn-primary" id="send-msg-btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        document.getElementById('auth-modal-container').innerHTML = createAuthModalHTML();
+
+        let selectedUserId = null;
+        let pollInterval = null;
+
+        // myId must be a STRING for === comparison with serialized ObjectIds from backend
+        const myId = String(getUser()?._id || getUser()?.id || '');
+
+        /* ─── HELPERS ──────────────────────────────────────────── */
+        function getImgSrc(imgValue) {
+            if (!imgValue) return null;
+            // If already a data URL (base64), use directly; otherwise treat as url
+            return imgValue;
+        }
+
+        function showError(elemId, msg) {
+            const el = document.getElementById(elemId);
+            if (!el) return;
+            el.textContent = '⚠️ ' + msg;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 6000);
+        }
+
+        /* ─── USER LIST ────────────────────────────────────────── */
+        async function loadUsers() {
+            try {
+                const users = await apiRequest('/api/users');
+                const container = document.getElementById('user-list');
+                if (!users.length) {
+                    container.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem">No other users yet. Ask a friend to register!</p>';
+                    return;
+                }
+                container.innerHTML = '';
+                users.forEach(u => {
+                    const initials = u.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    const item = document.createElement('div');
+                    item.className = 'user-list-item';
+                    item.dataset.uid = u._id;
+                    const imgSrc = getImgSrc(u.profileImage);
+                    item.innerHTML = `
+            <div class="user-avatar">${imgSrc
+                            ? `<img src="${imgSrc}" alt="${u.name}" onerror="this.parentElement.textContent='${initials}'" />`
+                            : initials}
+            </div>
+            <div>
+              <div class="user-title">${u.name}</div>
+              <div class="user-sub">${u.lifestyleType || 'Planner user'}</div>
+            </div>`;
+                    item.addEventListener('click', () => selectUser(u._id, u.name, item));
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                showToast('Could not load users: ' + e.message, 'error');
+            }
+        }
+
+        /* ─── SELECT USER & START CHAT ─────────────────────────── */
+        function selectUser(uid, name, el) {
+            selectedUserId = uid;
+            document.querySelectorAll('.user-list-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('msg-header').textContent = `💬 Chat with ${name}`;
+            document.getElementById('no-user-msg').style.display = 'none';
+            document.getElementById('message-panel-content').style.display = 'flex';
+
+            clearInterval(pollInterval);
+            loadMessages();
+            pollInterval = setInterval(loadMessages, 5000);
+        }
+
+        /* ─── LOAD MESSAGES ───────────────────────────────────── */
+        async function loadMessages() {
+            if (!selectedUserId) return;
+            try {
+                const messages = await apiRequest(`/api/messages/${selectedUserId}`);
+                const thread = document.getElementById('message-thread');
+                const wasAtBottom = thread.scrollHeight - thread.scrollTop <= thread.clientHeight + 60;
+
+                thread.innerHTML = '';
+                if (!messages.length) {
+                    thread.innerHTML = '<p style="color:var(--text-light);font-size:0.85rem;text-align:center;padding:1rem">No messages yet. Say hello! 👋</p>';
+                    return;
+                }
+
+                messages.forEach(m => {
+                    const isSent = m.senderId === myId;
+                    const bubble = document.createElement('div');
+                    bubble.className = `message-bubble ${isSent ? 'sent' : 'received'}`;
+                    const ts = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    bubble.innerHTML = `${escapeHtml(m.message)}<div class="msg-ts ${isSent ? '' : 'r'}">${ts}</div>`;
+                    thread.appendChild(bubble);
+                });
+
+                if (wasAtBottom) thread.scrollTop = thread.scrollHeight;
+            } catch (e) {
+                showError('msg-error', e.message);
+            }
+        }
+
+        /* ─── SEND MESSAGE ─────────────────────────────────────── */
+        document.getElementById('send-msg-btn').addEventListener('click', sendMessage);
+        document.getElementById('msg-input').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (!text) { showError('msg-error', 'Message cannot be empty.'); return; }
+            if (!selectedUserId) { showError('msg-error', 'Please select a user first.'); return; }
+
+            const btn = document.getElementById('send-msg-btn');
+            btn.disabled = true;
+            btn.textContent = '…';
+            try {
+                await apiRequest('/api/message', 'POST', { receiverId: selectedUserId, message: text });
+                input.value = '';
+                await loadMessages();
+            } catch (e) {
+                showError('msg-error', 'Failed to send: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Send';
+                input.focus();
+            }
+        }
+
+        /* ─── HTML ESCAPE ────────────────────────────────────── */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        /* ─── SHARED PLANNERS FEED ─────────────────────────── */
+        async function loadSharedPlanners() {
+            const feed = document.getElementById('shared-feed');
+            try {
+                const planners = await apiRequest('/api/shared-planners');
+                if (!planners.length) {
+                    feed.innerHTML = `
+            <div class="card" style="text-align:center;padding:2rem;color:var(--text-light)">
+              📭 No shared planners yet.<br>
+              <small>Go to <a href="planners.html" style="color:var(--primary)">Past Planners</a> and click "Share" on any planner.</small>
+            </div>`;
+                    return;
+                }
+                feed.innerHTML = '';
+                planners.forEach(p => {
+                    const owner = p.userId;
+                    const initials = owner?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+                    const dateLabel = new Date(p.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const taskPrev = (p.schedule || []).filter(s => s.task).slice(0, 3)
+                        .map(s => `<span style="font-size:0.8rem;background:var(--primary-bg);color:var(--primary);border-radius:6px;padding:2px 8px;margin-right:4px">${s.time}: ${escapeHtml(s.task)}</span>`)
+                        .join('') || '';
+
+                    const card = document.createElement('div');
+                    card.className = 'shared-planner-card';
+                    const ownerImg = getImgSrc(owner?.profileImage);
+                    const avatarHtml = ownerImg
+                        ? `<img src="${ownerImg}" alt="${owner.name}" onerror="this.parentElement.textContent='${initials}'" />`
+                        : initials;
+
+                    card.innerHTML = `
+            <div class="shared-planner-card-header">
+              <div class="user-avatar">${avatarHtml}</div>
+              <div>
+                <div class="user-title">${escapeHtml(owner?.name || 'Unknown')}</div>
+                <div class="user-sub">📅 ${dateLabel}</div>
+              </div>
+            </div>
+            <div class="planner-preview-content" style="cursor:pointer" title="Click to view full planner">
+              <div style="margin-bottom:0.5rem;flex-wrap:wrap;display:flex;gap:4px">${taskPrev}</div>
+              ${p.note ? `<p style="color:var(--text-mid);font-size:0.85rem;margin-top:4px">${escapeHtml(p.note.substring(0, 150))}${p.note.length > 150 ? '…' : ''}</p>` : ''}
+            </div>
+            <div class="comments-section">
+              <div class="card-header" style="margin-bottom:0.5rem">💬 Comments</div>
+              <div id="comments-${p._id}"><p style="color:var(--text-light);font-size:0.82rem">Loading…</p></div>
+              <div class="comment-form-row">
+                <input type="text" id="comment-input-${p._id}" placeholder="Add a comment…" style="flex:1" />
+                <button class="btn btn-primary btn-sm" data-planner="${p._id}" onclick="postComment('${p._id}')">Post</button>
+              </div>
+              <div id="comment-error-${p._id}" class="error-banner" style="margin-top:0.5rem"></div>
+            </div>`;
+
+                    card.querySelector('.planner-preview-content').addEventListener('click', () => { openPlanner(p._id); });
+                    card.querySelector('.shared-planner-card-header').addEventListener('click', () => { openPlanner(p._id); });
+
+                    feed.appendChild(card);
+                    loadComments(p._id);
+                });
+            } catch (e) {
+                showError('shared-feed-error', 'Could not load shared planners: ' + e.message);
+                feed.innerHTML = '';
+            }
+        }
+
+        /* ─── COMMENTS ────────────────────────────────────────── */
+        async function loadComments(plannerId) {
+            const container = document.getElementById(`comments-${plannerId}`);
+            if (!container) return;
+            try {
+                const comments = await apiRequest(`/api/comments/${plannerId}`);
+                if (!comments.length) {
+                    container.innerHTML = '<p style="color:var(--text-light);font-size:0.82rem">Be the first to comment!</p>';
+                    return;
+                }
+                container.innerHTML = comments.map(c => {
+                    const ts = new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const initials = c.userId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+                    const commentImg = getImgSrc(c.userId?.profileImage);
+                    const avatarHtml = commentImg
+                        ? `<img src="${commentImg}" alt="${c.userId.name}" />`
+                        : initials;
+                    return `
+            <div class="comment-item">
+              <div class="user-avatar" style="width:28px;height:28px;font-size:0.7rem">${avatarHtml}</div>
+              <div style="flex:1">
+                <span class="comment-author">${escapeHtml(c.userId?.name || 'User')}</span>
+                <span class="comment-date" style="margin-left:6px">${ts}</span>
+                <div class="comment-text">${escapeHtml(c.commentText)}</div>
+              </div>
+            </div>`;
+                }).join('');
+            } catch (e) {
+                if (container) container.innerHTML = '<p style="color:#dc2626;font-size:0.82rem">Could not load comments.</p>';
+            }
+        }
+
+        async function postComment(plannerId) {
+            const input = document.getElementById(`comment-input-${plannerId}`);
+            const text = input.value.trim();
+            if (!text) { showError(`comment-error-${plannerId}`, 'Comment cannot be empty.'); return; }
+            try {
+                await apiRequest('/api/comment', 'POST', { plannerId, commentText: text });
+                input.value = '';
+                await loadComments(plannerId);
+            } catch (e) {
+                showError(`comment-error-${plannerId}`, e.message);
+            }
+        }
+
+        /* ─── INIT ─────────────────────────────────────────────── */
+        function onAuthSuccess() { loadAll(); }
+
+        function loadAll() {
+            loadUsers();
+            loadSharedPlanners();
+        }
+
+        if (getToken()) loadAll();
+    </script>
+</body>
+
+</html>
