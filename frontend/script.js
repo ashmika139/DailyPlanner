@@ -3,8 +3,12 @@
    Handles: Auth, Navbar, Toast, API helpers, Page protection
    ============================================================ */
 
-// Use same origin when served from backend, fallback to localhost:5000 for file:// access
-const API_BASE = "/api";
+// ✅ FIX: Point to your actual backend URL, not relative path
+// Replace the URL below with your real backend deployment URL (Render, Railway, etc.)
+const API_BASE = "https://your-actual-backend-url.com/api";
+// Examples:
+// const API_BASE = "https://planner-backend.onrender.com/api";
+// const API_BASE = "https://planner-api.railway.app/api";
 
 /* ─── TOKEN HELPERS ─────────────────────────────────────── */
 function getToken() { return localStorage.getItem('planner_token'); }
@@ -56,11 +60,9 @@ function initNavbar() {
   const hamburgerHTML = `<button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>`;
 
   if (user && rightContainer) {
-    // Generate initials (max 2 characters)
     const initials = user.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
     const imgUrl = user.profileImage ? `${API_BASE}${user.profileImage}` : null;
 
-    // Avatar HTML logic: try image, fallback to initials on error
     const avatarHtml = imgUrl
       ? `<img src="${imgUrl}" alt="${user.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
          <span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;">${initials}</span>`
@@ -79,13 +81,11 @@ function initNavbar() {
       ${hamburgerHTML}
     `;
 
-    // Dropdown toggle logic
     document.getElementById('nav-profile-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       document.getElementById('nav-profile-wrap').classList.toggle('open');
     });
 
-    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       const wrap = document.getElementById('nav-profile-wrap');
       if (wrap && !wrap.contains(e.target)) {
@@ -104,7 +104,6 @@ function initNavbar() {
     hamburger.addEventListener('click', () => navLinks.classList.toggle('open'));
   }
 
-  // Active nav link
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.navbar-nav a').forEach(a => {
     if (a.getAttribute('href') === currentPage || (currentPage === '' && a.getAttribute('href') === 'index.html')) {

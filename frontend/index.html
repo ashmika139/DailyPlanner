@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Planner – Daily Plan</title>
-  <meta name="description" content="AI-powered Daily Planner. Organize your day with schedules, priorities and to-do lists." />
+  <meta name="description"
+    content="AI-powered Daily Planner. Organize your day with schedules, priorities and to-do lists." />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body data-protected="true">
 
   <!-- AUTH MODAL (injected by script) -->
@@ -63,7 +66,8 @@
       <div class="card">
         <div class="card-header">📝 Note</div>
         <div class="form-group" style="margin-bottom:0">
-          <textarea id="planner-note" placeholder="Any notes, thoughts, or reminders for today…" style="min-height:130px;"></textarea>
+          <textarea id="planner-note" placeholder="Any notes, thoughts, or reminders for today…"
+            style="min-height:130px;"></textarea>
         </div>
       </div>
     </div>
@@ -101,13 +105,15 @@
       <div class="card">
         <div class="card-header">🌅 For Tomorrow</div>
         <div class="form-group" style="margin-bottom:0">
-          <textarea id="planner-tomorrow" placeholder="What needs to be done tomorrow? Prep, reminders…" style="min-height:110px;"></textarea>
+          <textarea id="planner-tomorrow" placeholder="What needs to be done tomorrow? Prep, reminders…"
+            style="min-height:110px;"></textarea>
         </div>
       </div>
 
       <!-- SHARE TOGGLE -->
       <div class="card" style="padding:1rem 1.5rem;">
-        <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;text-transform:none;font-size:0.9rem;color:#4a5568;font-weight:500;letter-spacing:0;">
+        <label
+          style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;text-transform:none;font-size:0.9rem;color:#4a5568;font-weight:500;letter-spacing:0;">
           <input type="checkbox" id="planner-shared" style="width:18px;height:18px;accent-color:#0A4FA3;" />
           Share this planner on the Connect feed
         </label>
@@ -127,9 +133,9 @@
   <script src="script.js"></script>
   <script>
     const TIME_SLOTS = [
-      '5:00-6:00','6:00-7:00','7:00-8:00','8:00-9:00','9:00-10:00',
-      '10:00-11:00','11:00-12:00','12:00-13:00','13:00-14:00','14:00-15:00',
-      '15:00-16:00','16:00-17:00','17:00-18:00','18:00-19:00','19:00-20:00'
+      '5:00-6:00', '6:00-7:00', '7:00-8:00', '8:00-9:00', '9:00-10:00',
+      '10:00-11:00', '11:00-12:00', '12:00-13:00', '13:00-14:00', '14:00-15:00',
+      '15:00-16:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00'
     ];
 
     /* Inject auth modal */
@@ -304,4 +310,5 @@
     if (getToken()) initPage();
   </script>
 </body>
+
 </html>
