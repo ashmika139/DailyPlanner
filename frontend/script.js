@@ -5,7 +5,7 @@
 
 // ✅ FIX: Point to your actual backend URL, not relative path
 // Replace the URL below with your real backend deployment URL (Render, Railway, etc.)
-const API_BASE = "https://dailyplanner-d1ly.onrender.com";
+const API_BASE = "https://dailyplanner-d1ly.onrender.com/api";
 // Examples:
 // const API_BASE = "https://planner-backend.onrender.com/api";
 // const API_BASE = "https://planner-api.railway.app/api";
